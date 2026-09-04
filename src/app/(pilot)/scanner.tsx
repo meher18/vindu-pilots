@@ -104,7 +104,7 @@ export default function ScannerScreen() {
         }}
       >
         <View style={styles.overlay}>
-          <Text style={styles.instructionText}>Point at vendor's QR code</Text>
+          <Text style={styles.instructionText}>Point at vendor&apos;s QR code</Text>
           
           <View style={styles.reticleContainer}>
             <View style={[styles.reticleCorner, styles.topLeft]} />

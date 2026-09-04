@@ -9,9 +9,10 @@
     "expo": "~57.0.16",
     "expo-camera": "~16.1.4",
     "expo-constants": "~57.0.14",
+    "expo-device": "^57.0.1",
     "expo-haptics": "~57.0.2",
     "expo-linking": "~57.0.7",
-    "expo-notifications": "~0.30.0",
+    "expo-notifications": "^0.30.7",
     "expo-router": "~57.0.16",
     "expo-secure-store": "~57.0.2",
     "expo-splash-screen": "~57.0.8",
@@ -45,4 +46,3 @@
   },
   "private": true
 }
-

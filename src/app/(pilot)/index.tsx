@@ -265,7 +265,7 @@ export default function DeliveryHubScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>Today's Route</Text>
+          <Text style={styles.headerTitle}>Today&apos;s Route</Text>
           <Text style={styles.headerDate}>{today}</Text>
         </View>
         <View style={styles.badge}>
