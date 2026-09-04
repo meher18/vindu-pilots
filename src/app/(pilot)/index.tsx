@@ -40,20 +40,24 @@ export default function DeliveryHubScreen() {
 
     if (error) throw error;
     
-    // Fetch customer profiles to get phone numbers
-    const customerIds = [...new Set(data.map(d => d.customer_subscriptions?.customer_id).filter(Boolean))];
-    let profiles = {};
+    // Fetch customer profiles to get phone numbers and delivery addresses
+    const customerIds = [...new Set(data.map((d: any) => d.customer_subscriptions?.customer_id).filter(Boolean))];
+    const profiles: Record<string, { phone?: string; delivery_address?: string }> = {};
     if (customerIds.length > 0) {
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('id, phone')
+        .select('id, phone, delivery_address')
         .in('id', customerIds);
       if (profileData) {
-        profileData.forEach(p => { profiles[p.id] = p.phone; });
+        profileData.forEach((p: any) => { profiles[p.id] = { phone: p.phone, delivery_address: p.delivery_address }; });
       }
     }
 
-    return data.map(d => ({ ...d, customer_phone: profiles[d.customer_subscriptions?.customer_id] }));
+    return data.map((d: any) => ({
+      ...d,
+      customer_phone: profiles[d.customer_subscriptions?.customer_id]?.phone,
+      customer_delivery_address: profiles[d.customer_subscriptions?.customer_id]?.delivery_address,
+    }));
   };
 
   const fetchUnclaimedDeliveries = async () => {
@@ -203,20 +207,34 @@ export default function DeliveryHubScreen() {
           )}
           {isPickedUp && (
             <>
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: '#1E40AF' }]}
+                onPress={() => {
+                  const address = item.customer_delivery_address;
+                  if (address) {
+                    const encoded = encodeURIComponent(address);
+                    Linking.openURL(`https://maps.google.com/?q=${encoded}`);
+                  } else {
+                    Alert.alert('No Address', 'Customer delivery address is not set.');
+                  }
+                }}
+              >
+                <Text style={styles.actionButtonText}>🗺️ Navigate</Text>
+              </TouchableOpacity>
               <TouchableOpacity 
-                style={styles.actionButton} 
+                style={[styles.actionButton, { marginTop: 8 }]} 
                 onPress={() => {
                   if (item.customer_phone) Linking.openURL(`tel:${item.customer_phone}`);
                   else Alert.alert('Error', 'No phone number found for this customer.');
                 }}
               >
-                <Text style={styles.actionButtonText}>Call Customer</Text>
+                <Text style={styles.actionButtonText}>📞 Call Customer</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                style={[styles.actionButton, styles.primaryButton]} 
+                style={[styles.actionButton, styles.primaryButton, { marginTop: 8 }]} 
                 onPress={() => handleMarkDeliveredPress(item.id)}
               >
-                <Text style={styles.primaryButtonText}>Mark Delivered</Text>
+                <Text style={styles.primaryButtonText}>✅ Mark Delivered</Text>
               </TouchableOpacity>
             </>
           )}

@@ -4,6 +4,7 @@ import { Slot, useRouter, useSegments } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
+import { registerForPushNotifications } from '@/lib/notifications';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,6 +29,7 @@ export default function RootLayout() {
       if (error) throw error;
 
       if (data?.role === 'driver') {
+        registerForPushNotifications(userId).catch(() => {});
         setLoading(false);
         return;
       } else if (!data) {
@@ -84,3 +86,4 @@ export default function RootLayout() {
     </QueryClientProvider>
   );
 }
+

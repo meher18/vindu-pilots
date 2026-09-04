@@ -185,3 +185,4 @@ const styles = StyleSheet.create({
 
   footer: { fontSize: 11, color: '#334155', textAlign: 'center', marginTop: 28 },
 });
+
