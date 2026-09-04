@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "Vindu Pilots",
+    "slug": "vindu-pilots",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "vindu-pilots",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.vindu.pilots",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Vindu Pilots needs camera access to scan vendor pickup QR codes.",
+        "NSLocationWhenInUseUsageDescription": "Vindu Pilots uses your location to show customers accurate delivery ETAs."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F172A"
+      },
+      "package": "com.vindu.pilots",
+      "permissions": ["CAMERA", "ACCESS_FINE_LOCATION", "VIBRATE"]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Vindu Pilots to access your camera to scan vendor pickup QR codes."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
