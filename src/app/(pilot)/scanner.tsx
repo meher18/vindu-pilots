@@ -5,8 +5,8 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
 import * as Haptics from 'expo-haptics';
-import { router } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { getISTDateString } from '@/utils/dateUtils';
 
 export default function ScannerScreen() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -24,44 +24,16 @@ export default function ScannerScreen() {
         throw new Error("Invalid QR code. Please ask the vendor to regenerate.");
       }
 
-      const { kitchen_id, slot, date, batch_id } = parsed;
-      if (!kitchen_id || !slot || !date) {
-        throw new Error("Invalid QR code data format.");
+      if (!parsed.pickup_secret) {
+        throw new Error("This QR code is obsolete. Please ask the vendor to generate a new secure QR code.");
       }
 
-      const today = new Date().toISOString().split('T')[0];
-      
-      // Find matching deliveries
-      const { data: deliveries, error: fetchError } = await supabase
-        .from('deliveries')
-        .select(`
-          id,
-          customer_subscriptions (
-            subscriptions ( slot_name, kitchen_id )
-          )
-        `)
-        .eq('driver_id', user?.id)
-        .eq('status', 'vendor_ready')
-        .eq('date', today);
+      const { error: rpcError, data: count } = await supabase.rpc('secure_driver_claim_batch', {
+        p_secret: parsed.pickup_secret
+      });
 
-      if (fetchError) throw fetchError;
-
-      const matchingIds = deliveries.filter(d => {
-        const sub = d.customer_subscriptions?.subscriptions;
-        return sub?.kitchen_id === kitchen_id && sub?.slot_name === slot;
-      }).map(d => d.id);
-
-      if (matchingIds.length === 0) {
-        throw new Error("No matching deliveries found. Make sure you're at the right kitchen.");
-      }
-
-      const { error: updateError } = await supabase
-        .from('deliveries')
-        .update({ status: 'picked_up', qr_scanned_at: new Date().toISOString() })
-        .in('id', matchingIds);
-
-      if (updateError) throw updateError;
-      return matchingIds.length;
+      if (rpcError) throw rpcError;
+      return count as number;
     },
     onSuccess: (count) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
+import { getISTDateString } from '@/utils/dateUtils';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuthStore();
@@ -25,7 +26,7 @@ export default function ProfileScreen() {
   const { data: stats, isLoading: isLoadingStats } = useQuery({
     queryKey: ['pilot_stats', user?.id],
     queryFn: async () => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getISTDateString();
       const { data, error } = await supabase
         .from('deliveries')
         .select('id, date, status')

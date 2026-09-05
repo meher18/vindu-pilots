@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
+import { getISTDateString } from '@/utils/dateUtils';
 
 export default function EarningsDashboard() {
   const user = useAuthStore(state => state.user);
@@ -27,7 +28,7 @@ export default function EarningsDashboard() {
     enabled: !!user?.id,
   });
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getISTDateString();
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   const thisMonthStr = todayStr.substring(0, 7);
@@ -51,17 +52,17 @@ export default function EarningsDashboard() {
       </View>
       <View style={styles.transactionRow}>
         <Text style={styles.amountLabel}>Gross:</Text>
-        <Text style={styles.amountValue}>${item.gross_amount}</Text>
+        <Text style={styles.amountValue}>₹{item.gross_amount}</Text>
       </View>
       {item.penalty_amount > 0 && (
         <View style={styles.transactionRow}>
           <Text style={styles.amountLabel}>Penalty:</Text>
-          <Text style={[styles.amountValue, { color: '#EF4444' }]}>-${item.penalty_amount}</Text>
+          <Text style={[styles.amountValue, { color: '#EF4444' }]}>-₹{item.penalty_amount}</Text>
         </View>
       )}
       <View style={[styles.transactionRow, styles.netRow]}>
         <Text style={styles.netLabel}>Net Amount:</Text>
-        <Text style={styles.netValue}>${item.net_amount}</Text>
+        <Text style={styles.netValue}>₹{item.net_amount}</Text>
       </View>
     </View>
   );
@@ -76,19 +77,19 @@ export default function EarningsDashboard() {
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>Today</Text>
-          <Text style={styles.statValue}>${stats.today.toFixed(2)}</Text>
+          <Text style={styles.statValue}>₹{stats.today.toFixed(2)}</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>This Week</Text>
-          <Text style={styles.statValue}>${stats.thisWeek.toFixed(2)}</Text>
+          <Text style={styles.statValue}>₹{stats.thisWeek.toFixed(2)}</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>This Month</Text>
-          <Text style={styles.statValue}>${stats.thisMonth.toFixed(2)}</Text>
+          <Text style={styles.statValue}>₹{stats.thisMonth.toFixed(2)}</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>Pending</Text>
-          <Text style={styles.statValue}>${stats.pending.toFixed(2)}</Text>
+          <Text style={styles.statValue}>₹{stats.pending.toFixed(2)}</Text>
         </View>
       </View>
 

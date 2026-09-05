@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
+import { getISTDateString } from '@/utils/dateUtils';
 
 export default function DeliveryHubScreen() {
   const user = useAuthStore((state) => state.user);
@@ -17,14 +18,14 @@ export default function DeliveryHubScreen() {
   const [otpInput, setOtpInput] = useState('');
   const [selectedDeliveryId, setSelectedDeliveryId] = useState<string | null>(null);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getISTDateString();
 
   const fetchMyDeliveries = async () => {
     if (!user?.id) return [];
     const { data, error } = await supabase
       .from('deliveries')
       .select(`
-        id, status, otp_code, date, vendor_ready_at, qr_scanned_at, delivered_at,
+        id, status, date, vendor_ready_at, qr_scanned_at, delivered_at,
         customer_subscriptions (
           quantity,
           customer_id,
@@ -75,7 +76,8 @@ export default function DeliveryHubScreen() {
       `)
       .eq('date', today)
       .eq('status', 'vendor_ready')
-      .is('driver_id', null);
+      .is('driver_id', null)
+      .not('customer_subscriptions.subscriptions.delivery_type', 'eq', 'takeaway');
 
     if (error) throw error;
     return data;
@@ -119,14 +121,7 @@ export default function DeliveryHubScreen() {
 
   const markDeliveredMutation = useMutation({
     mutationFn: async ({ deliveryId, otp }: { deliveryId: string, otp: string }) => {
-      const delivery = myDeliveries.find(d => d.id === deliveryId);
-      if (delivery?.otp_code !== otp) {
-        throw new Error("Wrong OTP. Ask the customer to check their app.");
-      }
-      const { error } = await supabase.from('deliveries').update({ 
-        status: 'delivered', 
-        delivered_at: new Date().toISOString() 
-      }).eq('id', deliveryId);
+      const { error } = await supabase.rpc('secure_complete_delivery', { delivery_id: deliveryId, provided_otp: otp });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -196,12 +191,6 @@ export default function DeliveryHubScreen() {
                 onPress={() => router.push('/scanner')}
               >
                 <Text style={styles.actionButtonText}>Scan QR (Pickup)</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.actionButton, { marginTop: 8 }]} 
-                onPress={() => markPickedUpMutation.mutate(item.id)}
-              >
-                <Text style={styles.actionButtonText}>Manual Pickup (Fallback)</Text>
               </TouchableOpacity>
             </>
           )}
