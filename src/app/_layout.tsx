@@ -45,6 +45,8 @@ export default function RootLayout() {
         setTimeout(() => verifyDriver(userId, retries - 1), 1000);
         return;
       }
+      await supabase.auth.signOut();
+      setUser(null);
       setLoading(false);
     }
   };

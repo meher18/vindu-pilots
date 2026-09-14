@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/authStore';
 import * as Haptics from 'expo-haptics';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getISTDateString } from '@/utils/dateUtils';
+import { router } from 'expo-router';
 
 export default function ScannerScreen() {
   const [permission, requestPermission] = useCameraPermissions();

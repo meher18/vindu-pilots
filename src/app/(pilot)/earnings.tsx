@@ -30,7 +30,7 @@ export default function EarningsDashboard() {
 
   const todayStr = getISTDateString();
   const now = new Date();
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const weekAgo = getISTDateString(new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000));
   const thisMonthStr = todayStr.substring(0, 7);
 
   const stats = ledger.reduce((acc, row) => {

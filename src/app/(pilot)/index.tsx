@@ -66,9 +66,9 @@ export default function DeliveryHubScreen() {
       .from('deliveries')
       .select(`
         id, status, date,
-        customer_subscriptions (
+        customer_subscriptions!inner (
           quantity,
-          subscriptions (
+          subscriptions!inner (
             slot_name, diet_type,
             kitchens ( name, address )
           )
@@ -104,20 +104,11 @@ export default function DeliveryHubScreen() {
       queryClient.invalidateQueries({ queryKey: ['myDeliveries'] });
       queryClient.invalidateQueries({ queryKey: ['unclaimedDeliveries'] });
     },
+    onError: (err: any) => {
+      Alert.alert('Claim Failed', err.message || 'Could not claim this delivery run.');
+    },
   });
 
-  const markPickedUpMutation = useMutation({
-    mutationFn: async (deliveryId: string) => {
-      const { error } = await supabase.from('deliveries').update({ 
-        status: 'picked_up', 
-        qr_scanned_at: new Date().toISOString() 
-      }).eq('id', deliveryId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myDeliveries'] });
-    },
-  });
 
   const markDeliveredMutation = useMutation({
     mutationFn: async ({ deliveryId, otp }: { deliveryId: string, otp: string }) => {
