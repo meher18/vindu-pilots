@@ -4,7 +4,9 @@ import { Slot, useRouter, useSegments } from 'expo-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
-import { registerForPushNotifications } from '@/lib/notifications';
+import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -12,10 +14,37 @@ const queryClient = new QueryClient({
   },
 });
 
+function usePushNotifications(userId: string | null | undefined) {
+  useEffect(() => {
+    if (!userId) return;
+    async function registerForPushNotificationsAsync() {
+      if (Device.isDevice) {
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+        if (existingStatus !== 'granted') {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
+        if (finalStatus !== 'granted') return;
+        try {
+          const projectId = Constants.expoConfig?.extra?.eas?.projectId || 'your-project-id';
+          const token = await Notifications.getExpoPushTokenAsync({ projectId });
+          await supabase.from('profiles').update({ expo_push_token: token.data }).eq('id', userId);
+        } catch (error) {
+          console.error('Push notification error:', error);
+        }
+      }
+    }
+    registerForPushNotificationsAsync();
+  }, [userId]);
+}
+
 export default function RootLayout() {
   const { setUser, setLoading, user, isLoading } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
+
+  usePushNotifications(user?.id);
 
   const verifyDriver = async (userId: string, retries = 5): Promise<void> => {
     setLoading(true);
@@ -29,7 +58,6 @@ export default function RootLayout() {
       if (error) throw error;
 
       if (data?.role === 'driver') {
-        registerForPushNotifications(userId).catch(() => {});
         setLoading(false);
         return;
       } else if (!data) {
