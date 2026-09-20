@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { getISTDateString } from '@/utils/dateUtils';
 
@@ -108,6 +109,96 @@ export default function DeliveryHubScreen() {
       Alert.alert('Claim Failed', err.message || 'Could not claim this delivery run.');
     },
   });
+
+  const uploadPhoto = async (uri: string, deliveryId: string) => {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    const fileName = `${deliveryId}_${Date.now()}.jpg`;
+    const { data, error } = await supabase.storage.from('delivery-photos').upload(fileName, blob);
+    if (error) throw error;
+    return supabase.storage.from('delivery-photos').getPublicUrl(data.path).data.publicUrl;
+  };
+
+  const leaveAtDoorMutation = useMutation({
+    mutationFn: async ({ deliveryId, photoUri }: { deliveryId: string, photoUri: string }) => {
+      const photoUrl = await uploadPhoto(photoUri, deliveryId);
+      const { error } = await supabase.from('deliveries').update({ 
+        status: 'delivered', 
+        proof_photo_url: photoUrl, 
+        delivered_at: new Date().toISOString() 
+      }).eq('id', deliveryId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      queryClient.invalidateQueries({ queryKey: ['myDeliveries'] });
+      Alert.alert("Success", "Delivery marked as completed (Left at door)");
+    },
+    onError: (error: Error) => {
+      Alert.alert("Error", error.message);
+    }
+  });
+
+  const customerUnavailableMutation = useMutation({
+    mutationFn: async ({ deliveryId, photoUri }: { deliveryId: string, photoUri: string }) => {
+      const photoUrl = await uploadPhoto(photoUri, deliveryId);
+      const { error } = await supabase.rpc('driver_report_failed_delivery', { 
+        p_delivery_id: deliveryId, 
+        p_reason: 'Customer unavailable', 
+        p_photo_url: photoUrl 
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      queryClient.invalidateQueries({ queryKey: ['myDeliveries'] });
+      Alert.alert("Success", "Delivery reported as failed");
+    },
+    onError: (error: Error) => {
+      Alert.alert("Error", error.message);
+    }
+  });
+
+  const handleLeaveAtDoor = async (deliveryId: string) => {
+    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permissionResult.granted) {
+      Alert.alert("Permission Required", "Camera permission is required to take a photo.");
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      quality: 0.5,
+    });
+    if (!result.canceled) {
+      leaveAtDoorMutation.mutate({ deliveryId, photoUri: result.assets[0].uri });
+    }
+  };
+
+  const handleCustomerUnavailable = async (deliveryId: string) => {
+    Alert.alert(
+      "Customer Unavailable",
+      "Are you sure the customer is unavailable? Please take a photo as evidence.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Take Photo", 
+          style: "destructive",
+          onPress: async () => {
+            const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+            if (!permissionResult.granted) {
+              Alert.alert("Permission Required", "Camera permission is required to take a photo.");
+              return;
+            }
+            const result = await ImagePicker.launchCameraAsync({
+              quality: 0.5,
+            });
+            if (!result.canceled) {
+              customerUnavailableMutation.mutate({ deliveryId, photoUri: result.assets[0].uri });
+            }
+          }
+        }
+      ]
+    );
+  };
 
 
   const markDeliveredMutation = useMutation({
@@ -214,7 +305,19 @@ export default function DeliveryHubScreen() {
                 style={[styles.actionButton, styles.primaryButton, { marginTop: 8 }]} 
                 onPress={() => handleMarkDeliveredPress(item.id)}
               >
-                <Text style={styles.primaryButtonText}>✅ Mark Delivered</Text>
+                <Text style={styles.primaryButtonText}>✅ Mark Delivered (OTP)</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.actionButton, { backgroundColor: '#10B981', marginTop: 8 }]} 
+                onPress={() => handleLeaveAtDoor(item.id)}
+              >
+                <Text style={styles.primaryButtonText}>📸 Leave at Door</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.actionButton, { backgroundColor: '#EF4444', marginTop: 8 }]} 
+                onPress={() => handleCustomerUnavailable(item.id)}
+              >
+                <Text style={styles.primaryButtonText}>❌ Customer Unavailable</Text>
               </TouchableOpacity>
             </>
           )}
